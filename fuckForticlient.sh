@@ -97,8 +97,8 @@ SERVER=""
 # see this form, instead of using /remote/login, you will need to use /remote/saml/start?realm=
 # instead. In case your set-up is somehow different, you can overwrite this with the "-U PATH"
 # parameter. For example: ./fuckForticlient.sh -S server -U /remote/mySAML/login -c
-URL="/remote/saml/start?realm="
-#URL="/remote/login"
+#URL="/remote/saml/start?realm="
+URL="/remote/login"
 
 # Default timeout in seconds to wait for the SVPNCOOKIE to appear:
 TIMEOUT=120
@@ -334,21 +334,18 @@ usage(){
 # sanityCheck()
 #	Performs some trivial sanity checks before attempting to run the script.
 #####################################################################################
-sanityCheck(){
-	# Test for jq presence:
-	type jq >/dev/null 2>&1|| return 1
-	# Test for lz4jsoncat
-	type lz4jsoncat >/dev/null 2>&1 || return 1
-	# Test for openfortivpn:
-	type openfortivpn >/dev/null 2>&1|| return 1
-	# Make sure openfortivpn supports "--cookie-on-stdin":
-	"${OPENFORTIVPN}" --help|grep cookie >/dev/null|| return 1
-	# Make sure we have Firefox installed:
-	type firefox >/dev/null 2>&1 || return 1
-	# Make sure the user running this script belongs to the sudo group:
-	id -Gn |grep sudo >/dev/null || return 1
-	return 0
+
+sanityCheck() {
+    type jq >/dev/null 2>&1 || { echo "Error: jq not found"; return 1; }
+    type lz4jsoncat >/dev/null 2>&1 || { echo "Error: lz4jsoncat not found"; return 1; }
+    type openfortivpn >/dev/null 2>&1 || { echo "Error: openfortivpn not found"; return 1; }
+    /usr/bin/openfortivpn --help | grep cookie >/dev/null || { echo "Error: openfortivpn doesn't support --cookie-on-
+stdin"; return 1; }
+    type firefox >/dev/null 2>&1 || { echo "Error: firefox not found"; return 1; }
+    id -Gn | grep sudo >/dev/null || { echo "Error: User not in sudo group"; return 1; }
+    return 0 
 }
+
 
 #####################################################################################
 # checkFirefoxSettings()
@@ -430,7 +427,7 @@ checkAnotherInstance(){
 #   does not support "--cookie-on-stdin"  
 #####################################################################################
 checkOpenfortivpn(){
-    dpkg -l |grep openfortivpn|grep -E "^ii" >/dev/null 2>&1
+    dnf list |grep openfortivpn|grep -E "^ii" >/dev/null 2>&1
     return $?
 }
 
@@ -601,7 +598,7 @@ while getopts "Licshut:p:PvdDS:U:" opt; do
 		# Removes Forticlient:
 		d)
 			echo "[*] Removing Forticlient as requested ... "
-			dpkg -l forticlient >/dev/null 2>&1
+			dnf list forticlient >/dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				sudo dpkg --purge forticlient
 			else
